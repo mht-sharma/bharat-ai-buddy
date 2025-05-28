@@ -11,22 +11,14 @@ load_dotenv(dotenv_path=env_path)
 
 # Application configuration with defaults
 class Config:
-    # Model configuration
-    VLLM_API_URL = os.getenv('VLLM_API_URL', 'http://localhost:8000/v1')
-    
     # Security settings
     ENABLE_CODE_EXECUTION = os.getenv('ENABLE_CODE_EXECUTION', 'true').lower() == 'true'
     SANDBOX_CODE_EXECUTION = os.getenv('SANDBOX_CODE_EXECUTION', 'true').lower() == 'true'
     
     # Application settings
     DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
-    DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'en')
     MAX_HISTORY_LENGTH = int(os.getenv('MAX_HISTORY_LENGTH', 10))
     
-    # API keys
-    GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-
 # Global config instance
 config = Config()
 

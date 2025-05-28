@@ -3,23 +3,6 @@ UI components for collecting multilingual response feedback in Bharat AI Buddy
 """
 import gradio as gr
 from feedback_handler import save_feedback
- 
-from constants import LANGUAGES
-
-def get_language_name(lang_code):
-    """
-    Convert language code to full name
-    
-    Args:
-        lang_code: Language code string
-        
-    Returns:
-        Full language name or the code if not found
-    """
-    for name, code in LANGUAGES:
-        if code == lang_code:
-            return name
-    return lang_code
 
 def create_feedback_ui():
     """
@@ -53,11 +36,10 @@ def create_feedback_ui():
     # Hidden fields to store context
     prompt_store = gr.State("")
     response_store = gr.State("")
-    language_store = gr.State("")
     
-    def submit_feedback(prompt, response, language, rating_val, comment):
+    def submit_feedback(prompt, response, rating_val, comment):
         """Submit feedback and hide the feedback UI"""
-        save_feedback(prompt, response, language, rating_val, comment)
+        save_feedback(prompt, response, rating_val, comment)
         return gr.update(visible=False), "", ""
     
     def skip_feedback():
@@ -67,7 +49,7 @@ def create_feedback_ui():
     # Connect the buttons
     submit_btn.click(
         fn=submit_feedback,
-        inputs=[prompt_store, response_store, language_store, rating, feedback_comment],
+        inputs=[prompt_store, response_store, rating, feedback_comment],
         outputs=[feedback_container, feedback_comment, response_store]
     )
     
@@ -91,4 +73,4 @@ def create_feedback_ui():
         # Always show feedback UI (language detection removed)
         return gr.update(visible=True), prompt, response, ""
     
-    return feedback_container, prompt_store, response_store, language_store, show_feedback_ui
+    return feedback_container, prompt_store, response_store, show_feedback_ui

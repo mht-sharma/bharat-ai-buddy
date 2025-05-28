@@ -3,9 +3,9 @@ from constants import EXAMS, SUBJECTS
 
 quiz_state = {}
 
-def generate_quiz_question(exam, subject, language):
-    prompt = f"Generate a {subject} question for {exam} exam in {language}. Provide 4 options and the correct answer."
-    _, answer = generate_response(prompt, "think", language)
+def generate_quiz_question(exam, subject):
+    prompt = f"Generate a {subject} question for {exam} exam. Provide 4 options and the correct answer."
+    _, answer = generate_response(prompt, "think")
     # Expecting answer in format: Q: ...\nA) ...\nB) ...\nC) ...\nD) ...\nAnswer: ...
     return answer
 

@@ -3,16 +3,14 @@
 """
 App logic and event handlers for Bharat AI Buddy
 """
-from model_utils import generate_response
+from model_utils import engine, generate_response
 from quiz import generate_quiz_question, check_quiz_answer, quiz_state
 from smolagents import ToolCallingAgent, WebSearchTool, CodeAgent, tool
-from model_utils import sarvam_vllm
-import requests
 from markdownify import markdownify
-from constants import SUBJECTS, LANGUAGES
+from constants import SUBJECTS
 
 # Import our enhanced custom tools
-from agent_tools_improved import (
+from agent_tools import (
     visit_webpage, 
     search_wikipedia, 
     solve_math_problem,
@@ -22,7 +20,7 @@ from agent_tools_improved import (
     check_exam_syllabus
 )
 
-sarvam_agent_model = sarvam_vllm
+sarvam_agent_model = engine
 
 # Create specialized agents for different tasks
 web_agent = ToolCallingAgent(
@@ -142,7 +140,7 @@ PROMPT_TEMPLATES = {
     )
 }
 
-def get_prompt(tab, prompt, language=None):
+def get_prompt(tab, prompt):
     """
     Create a prompt template for the given tab and user query
     Designed to be language-neutral to leverage Sarvam-M's native multilingual capabilities
@@ -150,7 +148,6 @@ def get_prompt(tab, prompt, language=None):
     Args:
         tab: The active tab in the UI
         prompt: The user's question or request
-        language: Optional language preference (not required for Sarvam-M to process native language queries)
     
     Returns:
         A formatted prompt template
@@ -158,10 +155,6 @@ def get_prompt(tab, prompt, language=None):
     template = PROMPT_TEMPLATES.get(tab, PROMPT_TEMPLATES["Default"])
     
     # Language parameter is optional and doesn't affect Sarvam-M's ability to respond in native languages
-    if language and "{language}" in template:
-        return template.format(language=language, prompt=prompt)
-    
-    # Default case - just format with the prompt
     return template.format(prompt=prompt)
 
 def app_fn(tab, prompt, mode, language, use_agents=True):
@@ -177,20 +170,12 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
         language: The user's preferred language from UI (optional, as model can handle direct native language input)
         use_agents: Whether to use specialized agents to augment responses
     """
-    # Import language utilities if available, otherwise use standard approach
-    try:
-        from language_utils import process_query_language_neutral
-        import logging
-        logger = logging.getLogger("bharat_buddy")
-        logger.info("Using language-neutral query processing")
-    except ImportError:
-        # Fallback to legacy approach with language detection
     # Use detailed prompt templates for each tab/type
-    full_prompt = get_prompt(tab, prompt, language)
+    full_prompt = get_prompt(tab, prompt)
     
     # If agents are disabled, use standard text generation
     if not use_agents:
-        reasoning, answer = generate_response(full_prompt, mode, language)
+        reasoning, answer = generate_response(full_prompt, mode)
         if mode == "think" and reasoning:
             return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
         else:
@@ -225,7 +210,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
             
             # Let the LLM generate the answer with the additional factual context
             augmented_prompt = full_prompt + factual_context
-            reasoning, answer = generate_response(augmented_prompt, mode, language)
+            reasoning, answer = generate_response(augmented_prompt, mode)
             
             if mode == "think" and reasoning:
                 return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
@@ -243,7 +228,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
                     if math_info and len(math_info) > 20:
                         # Add the information to the LLM's prompt
                         augmented_prompt = f"{full_prompt}\n\nRelevant mathematical information:\n{math_info}"
-                        reasoning, answer = generate_response(augmented_prompt, mode, language)
+                        reasoning, answer = generate_response(augmented_prompt, mode)
                         
                         if mode == "think" and reasoning:
                             return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
@@ -254,7 +239,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
                     pass
             
             # Let the LLM handle the math question (either initially or as fallback)
-            reasoning, answer = generate_response(full_prompt, mode, language)
+            reasoning, answer = generate_response(full_prompt, mode)
             if mode == "think" and reasoning:
                 return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
             else:
@@ -294,7 +279,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
                             if resources_text:
                                 # Augment the LLM prompt with these resources
                                 augmented_prompt = f"{full_prompt}\n\nCode information and resources:\n{resources_text}"
-                                reasoning, answer = generate_response(augmented_prompt, mode, language)
+                                reasoning, answer = generate_response(augmented_prompt, mode)
                                 
                                 if mode == "think" and reasoning:
                                     return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
@@ -314,7 +299,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
                 pass
                 
             # Fallback to standard LLM
-            reasoning, answer = generate_response(full_prompt, mode, language)
+            reasoning, answer = generate_response(full_prompt, mode)
             if mode == "think" and reasoning:
                 return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
             else:
@@ -398,7 +383,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
             # Let the LLM generate a response with the additional context
             if extra_context:
                 augmented_prompt = full_prompt + extra_context
-                reasoning, answer = generate_response(augmented_prompt, mode, language)
+                reasoning, answer = generate_response(augmented_prompt, mode)
                 
                 if mode == "think" and reasoning:
                     return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
@@ -406,7 +391,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
                     return answer
             else:
                 # If no extra context, use standard generation
-                reasoning, answer = generate_response(full_prompt, mode, language)
+                reasoning, answer = generate_response(full_prompt, mode)
                 if mode == "think" and reasoning:
                     return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
                 else:
@@ -414,7 +399,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
             
         # Default: use standard text generation for anything else
         else:
-            reasoning, answer = generate_response(full_prompt, mode, language)
+            reasoning, answer = generate_response(full_prompt, mode)
             if mode == "think" and reasoning:
                 return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
             else:
@@ -423,7 +408,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
     except Exception as e:
         # Fallback to standard generation on agent errors
         try:
-            reasoning, answer = generate_response(full_prompt, mode, language)
+            reasoning, answer = generate_response(full_prompt, mode)
             if mode == "think" and reasoning:
                 return f"🧠 Reasoning:\n{reasoning}\n\n✅ Answer:\n{answer}"
             else:
@@ -438,11 +423,12 @@ def trending_click(tab, trending, mode, language, use_agents=True):
     return app_fn(tab, trending, mode, language, use_agents)
 
 def update_subjects(selected_exam):
-    from gradio import Dropdown
-    return Dropdown.update(choices=SUBJECTS[selected_exam], value=SUBJECTS[selected_exam][0])
+    # Gradio >=3.41 uses gr.Dropdown.update, not Dropdown.update
+    import gradio as gr
+    return gr.Dropdown.update(choices=SUBJECTS[selected_exam], value=SUBJECTS[selected_exam][0])
 
-def start_quiz_fn(exam, subject, language):
-    question = generate_quiz_question(exam, subject, language)
+def start_quiz_fn(exam, subject):
+    question = generate_quiz_question(exam, subject)
     quiz_state["question"] = question
     import re
     match = re.search(r"Answer:\s*([A-Da-d])", question)
@@ -479,7 +465,7 @@ def get_syllabus_info(exam, subject):
             prompt += f"\n\nIncorporate this factual syllabus information in your response:\n{syllabus_info}"
             
         # Have the LLM generate a response that incorporates the factual data
-        reasoning, answer = generate_response(prompt, "non-think", "en")
+        reasoning, answer = generate_response(prompt, "non-think")
         return answer
     except Exception as e:
         return f"Error retrieving syllabus: {str(e)}"
@@ -506,12 +492,12 @@ def get_study_tips(exam, subject):
             prompt += f"\n\nIncorporate this exam information in your response:\n{syllabus_info}"
             
         # Have the LLM generate a response that incorporates the factual data
-        reasoning, answer = generate_response(prompt, "non-think", "en")
+        reasoning, answer = generate_response(prompt, "non-think")
         return answer
     except Exception as e:
         return f"Error generating study tips: {str(e)}"
 
-def exam_qa(exam, subject, question, language):
+def exam_qa(exam, subject, question):
     """
     Answer exam-related questions with factual augmentation
     
@@ -519,7 +505,6 @@ def exam_qa(exam, subject, question, language):
         exam: The competitive exam name
         subject: The specific subject
         question: The user's question
-        language: The preferred language
         
     Returns:
         Detailed answer to the question
@@ -545,13 +530,13 @@ def exam_qa(exam, subject, question, language):
                 pass
                 
         # Create augmented prompt
-        full_prompt = f"As an expert in {exam} preparation, specifically for the subject {subject}, answer the following question in {language}: {question}"
+        full_prompt = f"As an expert in {exam} preparation, specifically for the subject {subject}, answer the following question: {question}"
         
         if context:
             full_prompt += f"\n\nIncorporate this factual information in your response:{context}"
         
         # Generate response
-        reasoning, answer = generate_response(full_prompt, "non-think", language)
+        reasoning, answer = generate_response(full_prompt, "non-think")
         return answer
     except Exception as e:
         return f"Error processing your question: {str(e)}"
@@ -597,13 +582,6 @@ def generate_regional_query(region: str, state: str, topic: str, language: str, 
                 pass
         
         # Generate a prompt that showcases Sarvam's regional expertise
-        language_code = "en"
-        for lang_name, code in LANGUAGES:
-            if lang_name == language:
-                language_code = code
-                break
-        
-        # Build a prompt that will highlight multilingual capabilities
         query = prompt if prompt else f"Explain {topic.lower()} of {state}"
         
         multilingual_prompt = (
@@ -620,7 +598,7 @@ def generate_regional_query(region: str, state: str, topic: str, language: str, 
             multilingual_prompt += f"\n\nIncorporate these facts in your response:{context}"
             
         # Generate response - we'll show both thinking and final answer for transparency
-        reasoning, answer = generate_response(multilingual_prompt, "think", language_code)
+        reasoning, answer = generate_response(multilingual_prompt, "think")
         
         response = ""
         if reasoning:

@@ -1,19 +1,23 @@
-from smolagents import VLLMModel
+from smolagents import TransformersModel
 
-sarvam_vllm = VLLMModel(
+engine = TransformersModel(
     model_id="sarvamai/sarvam-m",
-    model_kwargs={"max_model_len": 8192},
+    device="cuda",
+    max_new_tokens=5000,
+    do_sample=True,
 )
 
 
-
-def generate_response(prompt, mode, language):
+def generate_response(prompt, mode):
     # Compose chat template for Sarvam-M
     messages = [{"role": "user", "content": prompt}]
-    # Set thinking mode via extra_body
-    extra_body = {"chat_template_kwargs": {"enable_thinking": mode == "think"}}
-    output = sarvam_vllm(messages, extra_body=extra_body)
-    output_text = output[0]["content"] if isinstance(output, list) and "content" in output[0] else str(output)
+    # smolagents expects messages as a list of dicts with 'role' and 'content' as string, not nested lists
+    output = engine(messages)
+    # output can be a list of dicts or a string
+    if isinstance(output, list) and len(output) > 0 and isinstance(output[0], dict) and "content" in output[0]:
+        output_text = output[0]["content"]
+    else:
+        output_text = str(output)
     # Parse Sarvam-M output for reasoning and answer
     if "</think>" in output_text:
         reasoning_content = output_text.split("</think>")[0].rstrip("\n")

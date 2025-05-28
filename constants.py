@@ -1,25 +1,5 @@
 # All static data and constants for the app
 
-LANGUAGES = [
-    ("English", "en"),
-    ("Hindi (हिन्दी)", "hi"),
-    ("Tamil (தமிழ்)", "ta"),
-    ("Telugu (తెలుగు)", "te"),
-    ("Bengali (বাংলা)", "bn"),
-    ("Marathi (मराठी)", "mr"),
-    ("Gujarati (ગુજરાતી)", "gu"),
-    ("Kannada (ಕನ್ನಡ)", "kn"),
-    ("Malayalam (മലയാളം)", "ml"),
-    ("Oriya (ଓଡ଼ିଆ)", "or"),
-    ("Punjabi (ਪੰਜਾਬੀ)", "pa"),
-    ("Romanized Hindi", "hi-ro"),
-    ("Romanized Tamil", "ta-ro"),
-    ("Romanized Telugu", "te-ro"),
-    ("Romanized Bengali", "bn-ro"),
-    ("Romanized Marathi", "mr-ro"),
-    ("Romanized Gujarati", "gu-ro"),
-]
-
 EXAMPLES = {
     "Math/Logic": [
         "Solve: 234 + 567 in Hindi",
