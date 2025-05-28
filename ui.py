@@ -5,14 +5,16 @@ UI construction and Gradio wiring for Bharat AI Buddy
 import gradio as gr
 from constants import EXAMPLES
 from app_logic import (
-    app_fn, example_click, update_subjects, 
-    start_quiz_fn, submit_answer_fn, get_syllabus_info,
-    get_study_tips, exam_qa as exam_qa_fn
+    app_fn, get_syllabus_info, get_study_tips, exam_qa as exam_qa_fn
 )
 from config import config
+import logging
 
 def build_ui():
+    logger = logging.getLogger("bharat_buddy")
+    logger.info("Building Gradio UI...")
     with gr.Blocks(theme=gr.themes.Soft(primary_hue="orange", secondary_hue="green")) as demo:
+        logger.info("Created main Blocks container.")
         gr.HTML("""
         <div style='text-align:center; padding: 1em 0; background: linear-gradient(90deg, #ff9933 0%, #ffffff 50%, #138808 100%); border-radius: 12px;'>
             <img src='https://em-content.zobj.net/source/microsoft-teams/363/robot_1f916.png' alt='Bharat Buddy' style='width:60px; vertical-align:middle; margin-right:10px;'>
@@ -29,11 +31,15 @@ def build_ui():
             </div>
         </div>
         """)
+        logger.info("Added logo and title section.")
         with gr.Row():
             mode = gr.Radio(["think", "non-think"], value="think", label="Mode", elem_id="mode-select")
             use_agents = gr.Checkbox(value=True, label="Use AI Agents", info="Enables specialized AI agents for advanced capabilities")
+        logger.info("Added mode and AI agents toggle.")
         with gr.Tabs() as tabs:
+            # Main EXAMPLES tabs
             for tab_name, icon in zip(EXAMPLES.keys(), ["🧮", "💻", "🎉", "🌏"]):
+                tab_state = gr.State(tab_name)
                 with gr.Tab(f"{icon} {tab_name}"):
                     with gr.Row():
                         with gr.Column(scale=8):
@@ -48,43 +54,37 @@ def build_ui():
                             example_dropdown.change(lambda ex: gr.update(value=ex if ex else "", interactive=True), inputs=example_dropdown, outputs=prompt)
                     output = gr.Textbox(label="Response", lines=8, elem_id=f"output-{tab_name}")
                     submit = gr.Button("Submit", elem_id=f"submit-{tab_name}", scale=2)
-                    # Use prompt as a direct input, not gr.State(tab_name)
-                    submit.click(app_fn, inputs=[tab_name, prompt, mode, use_agents], outputs=output)
-                with gr.Tab("🏆 Exam Prep Buddy"):
-                    with gr.Tabs() as exam_tabs:
-                        with gr.Tab("Quiz Mode"):
-                            with gr.Row():
-                                exam = gr.Textbox(label="Exam", value="UPSC", elem_id="exam-select")
-                                subject = gr.Textbox(label="Subject", value="History", elem_id="subject-select")
-                            with gr.Row():
-                                start_quiz = gr.Button("Start Quiz", elem_id="start-quiz-btn", scale=2)
-                            quiz_question = gr.Textbox(label="Question", lines=4, interactive=False, elem_id="quiz-question")
-                            user_answer = gr.Textbox(label="Your Answer (A/B/C/D)", lines=1, elem_id="quiz-user-answer")
-                            submit_answer = gr.Button("Submit Answer", elem_id="quiz-submit-btn")
-                            quiz_feedback = gr.Textbox(label="Feedback", lines=3, interactive=False, elem_id="quiz-feedback")
-                        with gr.Tab("Syllabus Guide"):
-                            with gr.Row():
-                                exam_syllabus = gr.Textbox(label="Exam", value="UPSC", elem_id="syllabus-exam-select")
-                                subject_syllabus = gr.Textbox(label="Subject", value="History", elem_id="syllabus-subject-select")
-                            with gr.Row():
-                                get_syllabus_btn = gr.Button("Get Detailed Syllabus", elem_id="get-syllabus-btn")
-                                get_tips_btn = gr.Button("Get Study Tips", elem_id="get-tips-btn")
-                            syllabus_output = gr.Textbox(label="Syllabus Information", lines=8, elem_id="syllabus-output")
-                        with gr.Tab("Exam Q&A"):
-                            with gr.Row():
-                                exam_qa = gr.Textbox(label="Exam", value="UPSC", elem_id="qa-exam-select")
-                                subject_qa = gr.Textbox(label="Subject", value="History", elem_id="qa-subject-select")
-                            with gr.Row():
-                                qa_prompt = gr.Textbox(label="Ask about exam preparation", lines=2, elem_id="qa-prompt")
-                            qa_submit = gr.Button("Get Answer", elem_id="qa-submit-btn")
-                            qa_output = gr.Textbox(label="Answer", lines=8, elem_id="qa-output")
-                            qa_submit.click(lambda exam, subject, prompt: exam_qa_fn(exam, subject, prompt, None), inputs=[exam_qa, subject_qa, qa_prompt], outputs=qa_output)
-                    get_syllabus_btn.click(get_syllabus_info, inputs=[exam_syllabus, subject_syllabus], outputs=syllabus_output)
-                    get_tips_btn.click(get_study_tips, inputs=[exam_syllabus, subject_syllabus], outputs=syllabus_output)
+                    submit.click(app_fn, inputs=[tab_state, prompt, mode, use_agents], outputs=output)
+                    logger.info(f"Configured {tab_name} tab with prompt, output, and submit button.")
+            # Add Exam Prep Buddy tab only once, outside the loop
+            with gr.Tab("🏆 Exam Prep Buddy"):
+                with gr.Tabs() as exam_tabs:
+                    with gr.Tab("Syllabus Guide"):
+                        with gr.Row():
+                            exam_syllabus = gr.Textbox(label="Exam", value="UPSC", elem_id="syllabus-exam-select")
+                            subject_syllabus = gr.Textbox(label="Subject", value="History", elem_id="syllabus-subject-select")
+                        with gr.Row():
+                            get_syllabus_btn = gr.Button("Get Detailed Syllabus", elem_id="get-syllabus-btn")
+                            get_tips_btn = gr.Button("Get Study Tips", elem_id="get-tips-btn")
+                        syllabus_output = gr.Textbox(label="Syllabus Information", lines=8, elem_id="syllabus-output")
+                    with gr.Tab("Exam Q&A"):
+                        with gr.Row():
+                            exam_qa = gr.Textbox(label="Exam", value="UPSC", elem_id="qa-exam-select")
+                            subject_qa = gr.Textbox(label="Subject", value="History", elem_id="qa-subject-select")
+                        with gr.Row():
+                            qa_prompt = gr.Textbox(label="Ask about exam preparation", lines=2, elem_id="qa-prompt")
+                        qa_submit = gr.Button("Get Answer", elem_id="qa-submit-btn")
+                        qa_output = gr.Textbox(label="Answer", lines=8, elem_id="qa-output")
+                        qa_submit.click(lambda exam, subject, prompt: exam_qa_fn(exam, subject, prompt), inputs=[exam_qa, subject_qa, qa_prompt], outputs=qa_output)
+                        logger.info("Configured Exam Q&A tab with exam and subject selectors, prompt, and answer output.")
+                get_syllabus_btn.click(get_syllabus_info, inputs=[exam_syllabus, subject_syllabus], outputs=syllabus_output)
+                get_tips_btn.click(get_study_tips, inputs=[exam_syllabus, subject_syllabus], outputs=syllabus_output)
+                logger.info("Configured syllabus buttons with click events.")
                     
             gr.HTML("""
             <div style='text-align:center; margin-top:1.5em; color:#1a237e; font-size:1.1em;'>
                 <b>Made with ❤️ in India | भारत में निर्मित</b>
             </div>
             """)
+        logger.info("Finished building Gradio UI.")
         return demo

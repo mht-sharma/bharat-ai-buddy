@@ -3,6 +3,7 @@
 """
 App logic and event handlers for Bharat AI Buddy
 """
+import logging
 from model_utils import engine, generate_response
 from quiz import generate_quiz_question, check_quiz_answer, quiz_state
 from smolagents import ToolCallingAgent, WebSearchTool, CodeAgent, tool
@@ -157,7 +158,10 @@ def get_prompt(tab, prompt):
     # Language parameter is optional and doesn't affect Sarvam-M's ability to respond in native languages
     return template.format(prompt=prompt)
 
-def app_fn(tab, prompt, mode, language, use_agents=True):
+def app_fn(tab, prompt, mode, use_agents=True):
+    logger = logging.getLogger("bharat_buddy")
+    logger.info(f"app_fn called with tab={tab}, mode={mode}, use_agents={use_agents}")
+    
     """
     Main function to process user prompts based on tab context and user preferences.
     Uses specialized agents to augment the LLM's responses with additional context and capabilities.
@@ -167,7 +171,6 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
         tab: The active tab (Math/Logic, Code, Culture, Exam)
         prompt: The user's question or request
         mode: "think" or "non-think" mode for response generation
-        language: The user's preferred language from UI (optional, as model can handle direct native language input)
         use_agents: Whether to use specialized agents to augment responses
     """
     # Use detailed prompt templates for each tab/type
@@ -406,6 +409,7 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
                 return answer
                 
     except Exception as e:
+        logger.error(f"Error in app_fn: {e}", exc_info=True)
         # Fallback to standard generation on agent errors
         try:
             reasoning, answer = generate_response(full_prompt, mode)
@@ -416,33 +420,9 @@ def app_fn(tab, prompt, mode, language, use_agents=True):
         except:
             return f"Sorry, I encountered an error while processing your request: {str(e)}"
 
-def example_click(tab, example, mode, language, use_agents=True):
-    return app_fn(tab, example, mode, language, use_agents)
-
-def trending_click(tab, trending, mode, language, use_agents=True):
-    return app_fn(tab, trending, mode, language, use_agents)
-
-def update_subjects(selected_exam):
-    # Gradio >=3.41 uses gr.Dropdown.update, not Dropdown.update
-    import gradio as gr
-    return gr.Dropdown.update(choices=SUBJECTS[selected_exam], value=SUBJECTS[selected_exam][0])
-
-def start_quiz_fn(exam, subject):
-    question = generate_quiz_question(exam, subject)
-    quiz_state["question"] = question
-    import re
-    match = re.search(r"Answer:\s*([A-Da-d])", question)
-    quiz_state["correct"] = match.group(1).upper() if match else "A"
-    return question, ""
-
-def submit_answer_fn(user_ans):
-    correct = quiz_state.get("correct", "A")
-    if check_quiz_answer(user_ans, correct):
-        return "✅ Correct!", ""
-    else:
-        return f"❌ Incorrect. Correct answer: {correct}", ""
-
 def get_syllabus_info(exam, subject):
+    logger = logging.getLogger("bharat_buddy")
+    logger.info(f"get_syllabus_info called with exam={exam}, subject={subject}")
     """
     Get detailed syllabus information for a specific exam and subject.
     Uses check_exam_syllabus to retrieve factual information that augments the LLM's knowledge.
@@ -468,9 +448,12 @@ def get_syllabus_info(exam, subject):
         reasoning, answer = generate_response(prompt, "non-think")
         return answer
     except Exception as e:
+        logger.error(f"Error in get_syllabus_info: {e}", exc_info=True)
         return f"Error retrieving syllabus: {str(e)}"
 
 def get_study_tips(exam, subject):
+    logger = logging.getLogger("bharat_buddy")
+    logger.info(f"get_study_tips called with exam={exam}, subject={subject}")
     """
     Get study tips for a specific exam and subject
     
@@ -495,9 +478,12 @@ def get_study_tips(exam, subject):
         reasoning, answer = generate_response(prompt, "non-think")
         return answer
     except Exception as e:
+        logger.error(f"Error in get_study_tips: {e}", exc_info=True)
         return f"Error generating study tips: {str(e)}"
 
 def exam_qa(exam, subject, question):
+    logger = logging.getLogger("bharat_buddy")
+    logger.info(f"exam_qa called with exam={exam}, subject={subject}, question={question}")
     """
     Answer exam-related questions with factual augmentation
     
@@ -539,9 +525,12 @@ def exam_qa(exam, subject, question):
         reasoning, answer = generate_response(full_prompt, "non-think")
         return answer
     except Exception as e:
+        logger.error(f"Error in exam_qa: {e}", exc_info=True)
         return f"Error processing your question: {str(e)}"
-        
-def generate_regional_query(region: str, state: str, topic: str, language: str, prompt: str = "") -> str:
+
+def generate_regional_query(region: str, state: str, topic: str, prompt: str = "") -> str:
+    logger = logging.getLogger("bharat_buddy")
+    logger.info(f"generate_regional_query called with region={region}, state={state}, topic={topic}, prompt={prompt}")
     """
     Generates a response for a query about a specific Indian state and regional topic,
     showcasing Sarvam's deep understanding of regional nuances.
@@ -550,7 +539,6 @@ def generate_regional_query(region: str, state: str, topic: str, language: str, 
         region: The region of India (North, South, East, West)
         state: The specific state within the region
         topic: The topic of interest (cuisine, festivals, etc.)
-        language: The language for the response
         prompt: Optional additional query details
         
     Returns:
@@ -583,10 +571,9 @@ def generate_regional_query(region: str, state: str, topic: str, language: str, 
         
         # Generate a prompt that showcases Sarvam's regional expertise
         query = prompt if prompt else f"Explain {topic.lower()} of {state}"
-        
         multilingual_prompt = (
             f"You are Sarvam, an AI assistant with deep expertise in Indian regional cultures and languages. "
-            f"Provide a rich, detailed explanation about the {topic.lower()} of {state} in {language}. "
+            f"Provide a rich, detailed explanation about the {topic.lower()} of {state}. "
             f"Incorporate authentic local terms, traditions, and contexts. "
             f"If responding in an Indian language other than English, incorporate some authentic local terms "
             f"from that region while keeping the overall text understandable. "
@@ -612,4 +599,5 @@ def generate_regional_query(region: str, state: str, topic: str, language: str, 
         return response + note
         
     except Exception as e:
+        logger.error(f"Error in generate_regional_query: {e}", exc_info=True)
         return f"Error generating regional information: {str(e)}"

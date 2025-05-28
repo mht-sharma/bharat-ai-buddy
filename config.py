@@ -4,6 +4,10 @@ Configuration utilities for Bharat AI Buddy application
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import logging
+
+# Logger configuration
+logger = logging.getLogger("bharat_buddy")
 
 # Load environment variables from .env file if it exists
 env_path = Path(__file__).parent / '.env'
@@ -21,6 +25,9 @@ class Config:
     
 # Global config instance
 config = Config()
+
+# Log the loading of the config
+logger.info("config.py loaded.")
 
 def get_agent_config():
     """

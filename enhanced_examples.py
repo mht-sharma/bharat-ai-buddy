@@ -1,3 +1,7 @@
+import logging
+logger = logging.getLogger("bharat_buddy")
+logger.info("enhanced_examples.py loaded.")
+
 # Updated examples for Bharat AI Buddy
 # These examples showcase Sarvam-M's multilingual capabilities
 

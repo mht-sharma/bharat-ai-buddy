@@ -1,3 +1,7 @@
+import logging
+logger = logging.getLogger("bharat_buddy")
+logger.info("constants.py loaded.")
+
 # All static data and constants for the app
 
 EXAMPLES = {

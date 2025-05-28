@@ -22,12 +22,14 @@ def setup_logging():
             logging.StreamHandler(sys.stdout)
         ]
     )
-    return logging.getLogger("bharat_buddy")
+    logger = logging.getLogger("bharat_buddy")
+    logger.info("Logging initialized.")
+    return logger
 
 def initialize_app():
     """Initialize application dependencies and environment"""
-    # Set up logging
     logger = setup_logging()
+    logger.info("Initializing application dependencies and environment.")
     
     # Ensure required folders exist
     os.makedirs("tmp", exist_ok=True)
@@ -49,19 +51,21 @@ def initialize_app():
         logger.debug(f"Code execution enabled: {config.ENABLE_CODE_EXECUTION}")
         logger.debug(f"Sandbox execution enabled: {config.SANDBOX_CODE_EXECUTION}")
     
+    logger.info("Initialization complete.")
     return logger
 
 def main():
     # Initialize the application
     logger = initialize_app()
-    
+    logger.info("Starting main application flow.")
     try:
         # Build and launch the UI
         demo = build_ui()
-        logger.info("Starting Bharat AI Buddy application")
+        logger.info("UI built successfully. Launching app...")
         demo.launch(share=True, debug=config.DEBUG)
+        logger.info("App launched.")
     except Exception as e:
-        logger.error(f"Failed to start application: {e}")
+        logger.error(f"Failed to start application: {e}", exc_info=True)
         print(f"Error: Failed to start Bharat AI Buddy. See logs for details.")
         sys.exit(1)
 
