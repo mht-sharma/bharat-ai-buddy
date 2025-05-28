@@ -1,0 +1,19 @@
+gradio>=3.50.2
+transformers>=4.38.0
+torch>=2.0.0
+smolagents[toolkit,vllm,code]>=1.16.0
+markdownify
+wikipedia
+duckduckgo-search
+python-dotenv
+requests>=2.31.0
+# For code execution and analysis
+pylint
+black
+# For document and image analysis
+pytesseract
+pdf2image
+pillow>=10.0.0
+# Optional: for faster inference on some systems
+accelerate
+# For Docker/production, you may want to pin versions
