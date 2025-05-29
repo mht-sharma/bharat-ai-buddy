@@ -14,9 +14,9 @@ def generate_response(prompt, mode):
     logger.debug(f"generate_response called with prompt: {prompt[:200]}... mode: {mode}")
     try:
         # Compose chat template for Sarvam-M
-        messages = [{"role": "user", "content": [{"text": prompt}]}]
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
         logger.debug(f"Sending messages to engine: {messages}")
-        # smolagents expects messages as a list of dicts with 'role' and 'content' as a list of dicts with 'text'
+        # smolagents expects messages as a list of dicts with 'role' and 'content' as a list of dicts with 'type' and 'text'
         output = engine(messages)
         logger.debug(f"Raw output from engine: {output}")
         # output can be a list of dicts or a string

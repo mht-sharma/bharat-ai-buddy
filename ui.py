@@ -36,9 +36,17 @@ def build_ui():
             mode = gr.Radio(["think", "non-think"], value="think", label="Mode", elem_id="mode-select")
             use_agents = gr.Checkbox(value=True, label="Use AI Agents", info="Enables specialized AI agents for advanced capabilities")
         logger.info("Added mode and AI agents toggle.")
+        # Deduplicate tab names and icons
+        tab_defs = list(zip(EXAMPLES.keys(), ["🧮", "💻", "🎉", "🌏"]))
+        seen = set()
+        unique_tab_defs = []
+        for name, icon in tab_defs:
+            if name not in seen:
+                unique_tab_defs.append((name, icon))
+                seen.add(name)
         with gr.Tabs() as tabs:
             # Main EXAMPLES tabs
-            for tab_name, icon in zip(EXAMPLES.keys(), ["🧮", "💻", "🎉", "🌏"]):
+            for tab_name, icon in unique_tab_defs:
                 tab_state = gr.State(tab_name)
                 with gr.Tab(f"{icon} {tab_name}"):
                     with gr.Row():
